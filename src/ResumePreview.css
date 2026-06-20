@@ -200,3 +200,129 @@
 .tpl-minimal .r-act { display: flex; gap: 8px; margin-bottom: 5px; font-size: 12px; color: #3a3a4a; line-height: 1.65; }
 .tpl-minimal .r-act-dot { color: #10B981; flex-shrink: 0; }
 .tpl-minimal .r-portlink { color: #10B981; text-decoration: underline; }
+
+/* ══════════════════════════════════════
+   DARK RESUME THEME
+   Applies on top of whichever template is active by overriding
+   the body/background/text colors only — section accent colors
+   (violet/navy/mint) stay the same per template for brand consistency.
+══════════════════════════════════════ */
+.resume-theme-dark.resume { background: #15151f; color: #E4E4F0; }
+
+.resume-theme-dark .rb { background: #15151f; }
+.resume-theme-dark .r-summary { color: #C7C7DA; }
+.resume-theme-dark .r-etitle { color: #F4F4FA !important; }
+.resume-theme-dark .r-esub { color: #A0A0B8 !important; }
+.resume-theme-dark .r-date { color: #9090A8 !important; }
+.resume-theme-dark .r-tech-text { color: #9090A8 !important; }
+.resume-theme-dark .r-bul li { color: #C7C7DA !important; }
+.resume-theme-dark .r-act { color: #C7C7DA !important; }
+.resume-theme-dark .r-pname-plain { color: #F4F4FA !important; }
+
+.resume-theme-dark .r-skill-tbl { border-color: #2A2A3D !important; }
+.resume-theme-dark .r-skill-tbl tr { border-color: #2A2A3D !important; }
+.resume-theme-dark .r-sk-label { background: #1D1D2C !important; color: #F4F4FA !important; border-color: #2A2A3D !important; }
+.resume-theme-dark .r-sk-val { color: #C7C7DA !important; }
+
+.resume-theme-dark .r-sec-ln { background: #2A2A3D !important; }
+
+/* Classic template dark overrides */
+.resume-theme-dark.tpl-classic .rh { border-color: #3A3A52 !important; }
+.resume-theme-dark.tpl-classic .rh-name { color: #F4F4FA !important; }
+.resume-theme-dark.tpl-classic .rh-title { color: #A0A0B8 !important; }
+.resume-theme-dark.tpl-classic .r-sec-ttl { color: #E4E4F0 !important; }
+.resume-theme-dark.tpl-classic .r-sec-ln { background: #3A3A52 !important; }
+.resume-theme-dark.tpl-classic .r-grade { background: #1D1D2C !important; color: #C7C7DA !important; border-color: #3A3A52 !important; }
+.resume-theme-dark.tpl-classic .r-skill-tbl { border-color: #3A3A52 !important; }
+
+/* Minimal template dark overrides */
+.resume-theme-dark.tpl-minimal { border-top-color: #10B981 !important; }
+.resume-theme-dark.tpl-minimal .rh { border-color: #2A2A3D !important; }
+.resume-theme-dark.tpl-minimal .rh-name { color: #F4F4FA !important; }
+.resume-theme-dark.tpl-minimal .rh-title { color: #A0A0B8 !important; }
+.resume-theme-dark.tpl-minimal .r-grade { background: #0D2A20 !important; color: #6EE7B7 !important; border-color: #134E3A !important; }
+
+/* Modern template dark — header is already dark navy, just darken the body */
+.resume-theme-dark.tpl-modern .rh { background: #0A0A14; }
+
+/* ══════════════════════════════════════
+   COMPACT TEMPLATE — two-column layout
+   Sidebar (skills, education, portfolio) + main column
+   (summary, experience, projects). Denser, fits more on one page.
+══════════════════════════════════════ */
+.tpl-compact {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  min-height: 1123px;
+}
+.tpl-compact .rh {
+  grid-column: 1 / -1;
+  background: #0F1629;
+  padding: 28px 40px 22px;
+  position: relative;
+}
+.tpl-compact .rh::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #7C3AED 0%, #10B981 100%);
+}
+.tpl-compact .rh-name {
+  font-family: 'Sora', 'Inter', sans-serif;
+  font-size: 30px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+  text-transform: capitalize;
+}
+.tpl-compact .rh-title { font-size: 12px; color: rgba(255,255,255,0.55); margin: 0; }
+.tpl-compact .rh-contacts { margin-top: 10px; gap: 4px 16px; }
+.tpl-compact .r-ci { color: rgba(255,255,255,0.7); font-size: 10.5px; }
+.tpl-compact .r-ci svg { color: #7C3AED; }
+
+.tpl-compact .rb {
+  grid-column: 2;
+  padding: 22px 30px 30px 24px;
+  border-left: 1px solid #eee;
+}
+.tpl-compact .r-sec { margin-bottom: 18px; }
+.tpl-compact .r-sec-hd { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+.tpl-compact .r-sec-ttl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.18em; color: #7C3AED; white-space: nowrap; }
+.tpl-compact .r-sec-ln { flex: 1; height: 1px; background: #7C3AED33; }
+.tpl-compact .r-summary { font-size: 11px; color: #3a3a4a; line-height: 1.65; }
+.tpl-compact .r-entry { margin-bottom: 12px; }
+.tpl-compact .r-row { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 3px; }
+.tpl-compact .r-etitle { font-size: 12px; font-weight: 700; color: #0F1629; }
+.tpl-compact .r-esub { font-size: 10.5px; color: #666; display: block; margin-top: 1px; }
+.tpl-compact .r-date { font-size: 9.5px; color: #888; white-space: nowrap; }
+.tpl-compact .r-pname { color: #7C3AED; font-weight: 700; font-size: 12px; text-decoration: none; }
+.tpl-compact .r-pname-plain { font-weight: 700; font-size: 12px; color: #0F1629; }
+.tpl-compact .r-purl-inline { font-size: 9.5px; color: #7C3AED; text-decoration: underline; }
+.tpl-compact .r-tech-text { font-size: 9.5px; color: #888; display: block; margin-top: 2px; }
+.tpl-compact .r-bul { list-style: none; padding: 0; margin: 4px 0 0; }
+.tpl-compact .r-bul li { font-size: 10.5px; color: #3a3a4a; padding-left: 12px; position: relative; margin-bottom: 2px; }
+.tpl-compact .r-bul li::before { content: '•'; position: absolute; left: 0; color: #7C3AED; }
+
+/* Sidebar — education, skills, portfolio live here */
+.tpl-compact .rb-side {
+  grid-column: 1;
+  background: #F8F8FF;
+  padding: 22px 20px 30px;
+}
+.tpl-compact .rb-side .r-sec-ttl { color: #5B21B6; }
+.tpl-compact .rb-side .r-etitle { font-size: 11px; }
+.tpl-compact .rb-side .r-esub { font-size: 10px; }
+.tpl-compact .rb-side .r-entry { margin-bottom: 10px; }
+.tpl-compact .rb-side .r-skill-tbl { display: block; }
+.tpl-compact .rb-side .r-skill-tbl tbody { display: flex; flex-direction: column; gap: 8px; }
+.tpl-compact .rb-side .r-skill-tbl tr { display: block; border: none !important; }
+.tpl-compact .rb-side .r-sk-label { display: block; font-size: 10px; padding: 0 0 2px; background: none !important; border: none !important; color: #5B21B6 !important; }
+.tpl-compact .rb-side .r-sk-val { display: block; font-size: 10px; padding: 0; line-height: 1.5; }
+.tpl-compact .rb-side .r-act { font-size: 10px; }
+
+.resume-theme-dark.tpl-compact .rb { background: #15151f; border-color: #2A2A3D; }
+.resume-theme-dark.tpl-compact .rb-side { background: #1A1A28; }
+.resume-theme-dark.tpl-compact .r-etitle { color: #F4F4FA !important; }
+.resume-theme-dark.tpl-compact .r-esub { color: #A0A0B8 !important; }

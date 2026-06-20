@@ -1,6 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import ResumePreview from './ResumePreview.jsx'
+import { loadSavedData, loadSavedMeta, saveData, clearSavedData } from './lib/persistence.js'
+import { scoreResume } from './lib/atsChecker.js'
+import { parseResumeText, parsedToFormData } from './lib/resumeParser.js'
+import { dataToPlainText, downloadTextFile } from './lib/exportText.js'
+import { buildShareUrl, decodeShareData, getShareParamFromUrl } from './lib/shareLink.js'
 
 const DEGREE_OPTIONS = [
   '',
@@ -151,10 +156,11 @@ const INITIAL = {
   ],
   activities: [{ id: 1, title: '', description: '' }],
   portfolio: [{ id: 1, label: '', url: '' }],
+  coverLetter: { company: '', role: '', body: '' },
 }
 
 const TEMPLATES = [
-  { key: 'Modern' }, { key: 'Classic' }, { key: 'Minimal' },
+  { key: 'Modern' }, { key: 'Classic' }, { key: 'Minimal' }, { key: 'Compact' },
 ]
 
 function calcPct(data) {
@@ -180,18 +186,43 @@ function validate(data) {
 }
 
 export default function App() {
-  const [data, setData] = useState(INITIAL)
-  const [template, setTemplate] = useState('Modern')
+  // ── Check for shared read-only view first ──
+  const shareParam = getShareParamFromUrl()
+  const sharedView = shareParam ? decodeShareData(shareParam) : null
+
+  const [data, setData] = useState(() => {
+    if (sharedView) return sharedView.data
+    const saved = loadSavedData()
+    return saved || INITIAL
+  })
+  const [template, setTemplate] = useState(() => sharedView?.template || 'Modern')
   const [tab, setTab] = useState('personal')
   const [downloading, setDownloading] = useState(false)
   const [errors, setErrors] = useState({})
   const [showSuccess, setShowSuccess] = useState(false)
   const [selectedPreset, setSelectedPreset] = useState('')
+  const [resumeTheme, setResumeTheme] = useState('light') // light | dark — the PDF/preview color scheme
+  const [lastSaved, setLastSaved] = useState(() => loadSavedMeta()?.savedAt || null)
+  const [showATS, setShowATS] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+  const [showShare, setShowShare] = useState(false)
+  const [shareUrl, setShareUrl] = useState('')
+  const isReadOnly = !!sharedView
+
+  // ── Auto-save (debounced) ──
+  useEffect(() => {
+    if (isReadOnly) return
+    saveData(data)
+    const t = setTimeout(() => setLastSaved(Date.now()), 650)
+    return () => clearTimeout(t)
+  }, [data, isReadOnly])
 
   const sp = (f, v) => {
     setData(d => ({ ...d, personal: { ...d.personal, [f]: v } }))
     if (errors[`personal.${f}`]) setErrors(e => { const n = { ...e }; delete n[`personal.${f}`]; return n })
   }
+
+  const setCoverLetter = (f, v) => setData(d => ({ ...d, coverLetter: { ...d.coverLetter, [f]: v } }))
 
   const arrSet = (key, id, field, val) => setData(d => ({
     ...d, [key]: d[key].map(e => e.id === id ? { ...e, [field]: val } : e)
@@ -203,6 +234,45 @@ export default function App() {
     setSelectedPreset(preset)
     const groups = (SKILL_PRESETS[preset] || SKILL_PRESETS.custom).map((g, i) => ({ ...g, id: Date.now() + i }))
     setData(d => ({ ...d, skillGroups: groups }))
+  }
+
+  const handleStartFresh = () => {
+    if (!confirm('This will clear all your data and start a new resume. Continue?')) return
+    clearSavedData()
+    setData(INITIAL)
+    setSelectedPreset('')
+    setTab('personal')
+  }
+
+  const handleImportText = (text) => {
+    const parsed = parseResumeText(text)
+    const mapped = parsedToFormData(parsed)
+    setData(d => ({
+      ...d,
+      personal: { ...d.personal, ...Object.fromEntries(Object.entries(mapped.personal).filter(([, v]) => v)) },
+      education: mapped.education || d.education,
+      experience: mapped.experience || d.experience,
+      projects: mapped.projects || d.projects,
+      skillGroups: mapped.skillGroups || d.skillGroups,
+      activities: mapped.activities || d.activities,
+    }))
+    setShowImport(false)
+    setTab('personal')
+  }
+
+  const handleExportText = () => {
+    const text = dataToPlainText(data)
+    downloadTextFile(text, `${(data.personal.name || 'resume').replace(/\s+/g, '_')}_resume.txt`)
+  }
+
+  const handleGenerateShareLink = () => {
+    const url = buildShareUrl(data, template)
+    if (url) {
+      setShareUrl(url)
+      setShowShare(true)
+    } else {
+      alert('Could not generate a share link — your resume content may be too large.')
+    }
   }
 
   const handleDownload = async () => {
@@ -275,6 +345,28 @@ export default function App() {
     setDownloading(false)
   }
 
+  const handleDownloadCoverLetter = async () => {
+    setDownloading(true)
+    try {
+      const h = (await import('html2pdf.js')).default
+      const el = document.getElementById('cover-letter-print')
+      if (!el) return
+      await h().set({
+        margin: 0,
+        filename: `${data.personal.name.replace(/\s+/g, '_') || 'cover'}_letter.pdf`,
+        image: { type: 'jpeg', quality: 0.99 },
+        html2canvas: { scale: 3, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      }).from(el).save()
+      setShowSuccess(true)
+      setTimeout(() => setShowSuccess(false), 3000)
+    } catch (e) {
+      console.error(e)
+      alert('Download failed. Please try again.')
+    }
+    setDownloading(false)
+  }
+
   const complete = calcPct(data)
   const errCount = Object.keys(errors).length
   const hasPersonalErr = errors['personal.name'] || errors['personal.email'] || errors['personal.phone']
@@ -287,10 +379,11 @@ export default function App() {
     { k: 'projects',   label: 'Projects',   icon: '🚀' },
     { k: 'skills',     label: 'Skills',     icon: '⚡' },
     { k: 'extras',     label: 'Extras',     icon: '🏆' },
+    { k: 'cover',      label: 'Cover Letter', icon: '✉️', optional: true },
   ]
 
   return (
-    <div className="app">
+    <div className={`app theme-${resumeTheme}`}>
       <header className="header">
         <div className="header-inner">
           <div className="logo"><span>⚡</span><span className="logo-text">ResumeForge</span></div>
@@ -300,24 +393,52 @@ export default function App() {
                 <button key={t.key} className={`pill ${template === t.key ? 'active' : ''}`} onClick={() => setTemplate(t.key)}>{t.key}</button>
               ))}
             </div>
-            <button className="btn-dl" onClick={handleDownload} disabled={downloading}>
+            <button className="btn-dl" onClick={handleDownload} disabled={downloading || isReadOnly}>
               {downloading ? <><span className="spin">↻</span> Generating…</> : <>↓ Download PDF</>}
             </button>
           </div>
         </div>
       </header>
 
-      <div className="progress-wrap">
-        <div className="progress-fill" style={{ width: complete + '%' }} />
-        <span className="progress-txt">{complete}% complete</span>
-      </div>
+      {/* Secondary utility toolbar */}
+      {!isReadOnly && (
+        <div className="toolbar">
+          <div className="toolbar-left">
+            <button className="tbtn" onClick={() => setResumeTheme(t => t === 'light' ? 'dark' : 'light')} title="Toggle resume color scheme">
+              {resumeTheme === 'light' ? '🌙 Dark resume' : '☀️ Light resume'}
+            </button>
+            <button className="tbtn" onClick={() => setShowImport(true)}>📋 Import from text</button>
+            <button className="tbtn" onClick={() => setShowATS(true)}>🎯 ATS check</button>
+            <button className="tbtn" onClick={handleExportText}>📄 Export .txt</button>
+            <button className="tbtn" onClick={handleGenerateShareLink}>🔗 Share link</button>
+          </div>
+          <div className="toolbar-right">
+            {lastSaved && <span className="autosave-indicator">✓ Saved {timeAgo(lastSaved)}</span>}
+            <button className="tbtn tbtn-danger" onClick={handleStartFresh}>🗑 Start fresh</button>
+          </div>
+        </div>
+      )}
+
+      {isReadOnly && (
+        <div className="readonly-banner">
+          👁️ You're viewing a shared resume (read-only). <a href={window.location.origin}>Build your own →</a>
+        </div>
+      )}
+
+      {!isReadOnly && (
+        <div className="progress-wrap">
+          <div className="progress-fill" style={{ width: complete + '%' }} />
+          <span className="progress-txt">{complete}% complete</span>
+        </div>
+      )}
 
       {errCount > 0 && (
         <div className="err-banner">⚠️ Please fix {errCount} error{errCount > 1 ? 's' : ''} before downloading</div>
       )}
       {showSuccess && <div className="success-toast">✅ Resume downloaded!</div>}
 
-      <main className="main">
+      <main className={`main ${isReadOnly ? 'main-readonly' : ''}`}>
+        {!isReadOnly && (
         <section className="form-panel">
           <nav className="tabs">
             {tabs.map(t => (
@@ -608,33 +729,227 @@ export default function App() {
               </div>
             )}
 
+            {/* ── COVER LETTER (OPTIONAL) ── */}
+            {tab === 'cover' && (
+              <div className="sf">
+                <div className="si">
+                  <h2 className="st">Cover Letter <span className="opt-badge">Optional</span></h2>
+                  <p className="sd">Write a short letter to go alongside your resume. Downloads as a separate PDF.</p>
+                </div>
+                <div className="g2">
+                  <F label="Company Name">
+                    <input value={data.coverLetter.company} onChange={e => setCoverLetter('company', e.target.value)} placeholder="e.g. Digital Heroes" />
+                  </F>
+                  <F label="Role you're applying for">
+                    <input value={data.coverLetter.role} onChange={e => setCoverLetter('role', e.target.value)} placeholder="e.g. Frontend Developer" />
+                  </F>
+                </div>
+                <F label="Letter body" hint="Address why you're a good fit. Your name, contact info, and date are added automatically.">
+                  <textarea rows={12} value={data.coverLetter.body} onChange={e => setCoverLetter('body', e.target.value)}
+                    placeholder={`Dear Hiring Manager,\n\nI'm excited to apply for this role because...\n\nIn my recent project work, I have...\n\nI'd welcome the opportunity to discuss how I can contribute to your team.\n\nSincerely,`} />
+                </F>
+                <button className="btn-add-lg" onClick={handleDownloadCoverLetter} disabled={downloading || !data.coverLetter.body.trim()}>
+                  {downloading ? '↻ Generating…' : '↓ Download Cover Letter PDF'}
+                </button>
+                <Tip>💡 Keep it to 3-4 short paragraphs. Mention the company by name and one specific reason you want to work there.</Tip>
+              </div>
+            )}
+
           </div>
         </section>
+        )}
 
         <section className="preview-panel">
           <div className="preview-header">
             <div className="ph-left">
-              <span className="preview-label">Live Preview</span>
-              <span className="pdot" />
-              <span className="plive">Updates as you type</span>
+              <span className="preview-label">{isReadOnly ? 'Shared Resume' : 'Live Preview'}</span>
+              {!isReadOnly && <><span className="pdot" /><span className="plive">Updates as you type</span></>}
             </div>
             <span className="pbadge">A4 · PDF Ready</span>
           </div>
           <div className="preview-wrapper">
-            <ResumePreview data={data} template={template} />
+            <ResumePreview data={data} template={template} theme={resumeTheme} />
           </div>
         </section>
       </main>
 
-      <footer className="footer">
-        <div className="fi">
-          <div className="fc">
-            <span>Built by <strong>Riddhima Gupta</strong></span>
-            <a href="mailto:guptariddhima75@gmail.com">guptariddhima75@gmail.com</a>
+      {!isReadOnly && (
+        <footer className="footer">
+          <div className="fi">
+            <div className="fc">
+              <span>Built by <strong>Riddhima Gupta</strong></span>
+              <a href="mailto:guptariddhima75@gmail.com">guptariddhima75@gmail.com</a>
+            </div>
+            <a href="https://digitalheroesco.com" target="_blank" rel="noopener noreferrer" className="btn-dh">✦ Built for Digital Heroes</a>
           </div>
-          <a href="https://digitalheroesco.com" target="_blank" rel="noopener noreferrer" className="btn-dh">✦ Built for Digital Heroes</a>
+        </footer>
+      )}
+
+      {/* Hidden cover letter render target for PDF export */}
+      {data.coverLetter.body.trim() && (
+        <div className="cover-letter-offscreen">
+          <CoverLetterDoc data={data} />
         </div>
-      </footer>
+      )}
+
+      {/* ── ATS Checker Modal ── */}
+      {showATS && (
+        <ATSModal data={data} onClose={() => setShowATS(false)} />
+      )}
+
+      {/* ── Import Modal ── */}
+      {showImport && (
+        <ImportModal onImport={handleImportText} onClose={() => setShowImport(false)} />
+      )}
+
+      {/* ── Share Link Modal ── */}
+      {showShare && (
+        <ShareModal url={shareUrl} onClose={() => setShowShare(false)} />
+      )}
+    </div>
+  )
+}
+
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000)
+  if (s < 5) return 'just now'
+  if (s < 60) return `${s}s ago`
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  return `${h}h ago`
+}
+
+function ATSModal({ data, onClose }) {
+  const [jobText, setJobText] = useState('')
+  const result = jobText.trim() ? scoreResume(data, jobText) : null
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>🎯 ATS Keyword Check</h3>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <p className="modal-desc">Paste a job description below to see how well your resume's wording matches the keywords it's likely scanned for.</p>
+          <textarea
+            rows={6}
+            className="ats-textarea"
+            value={jobText}
+            onChange={e => setJobText(e.target.value)}
+            placeholder="Paste the full job description here…"
+          />
+          {result && (
+            <div className="ats-result">
+              <div className="ats-score-row">
+                <div className={`ats-score-circle ${result.score >= 70 ? 'good' : result.score >= 40 ? 'mid' : 'low'}`}>
+                  {result.score}%
+                </div>
+                <div>
+                  <p className="ats-score-label">Keyword Match</p>
+                  <p className="ats-score-sub">{result.matched.length} of {result.total} keywords found in your resume</p>
+                </div>
+              </div>
+              {result.matched.length > 0 && (
+                <div className="ats-kw-group">
+                  <p className="ats-kw-title">✓ Matched</p>
+                  <div className="ats-kw-list">
+                    {result.matched.map(k => <span key={k} className="ats-kw ats-kw-good">{k}</span>)}
+                  </div>
+                </div>
+              )}
+              {result.missing.length > 0 && (
+                <div className="ats-kw-group">
+                  <p className="ats-kw-title">✗ Missing — consider adding if relevant</p>
+                  <div className="ats-kw-list">
+                    {result.missing.map(k => <span key={k} className="ats-kw ats-kw-bad">{k}</span>)}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ImportModal({ onImport, onClose }) {
+  const [text, setText] = useState('')
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>📋 Import from pasted text</h3>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <p className="modal-desc">Paste your existing resume text (from a Word doc, LinkedIn "About" + experience sections, or anywhere). We'll do our best to auto-fill matching fields — review everything afterward since this is a best-effort import.</p>
+          <textarea
+            rows={12}
+            className="ats-textarea"
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder={`Paste your resume text here. Use section headers like:\n\nEducation\nExperience\nProjects\nSkills\n\n...to help us detect each section.`}
+          />
+          <div className="modal-actions">
+            <button className="btn-add-lg" disabled={!text.trim()} onClick={() => onImport(text)}>Import & Fill Form</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ShareModal({ url, onClose }) {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard unavailable */ }
+  }
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>🔗 Shareable Link</h3>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <p className="modal-desc">Anyone with this link can view your resume online — no sign-up needed. Your data is encoded directly in the URL; nothing is stored on a server.</p>
+          <div className="share-url-row">
+            <input readOnly value={url} onFocus={e => e.target.select()} />
+            <button className="btn-add" onClick={copy}>{copied ? '✓ Copied' : 'Copy'}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CoverLetterDoc({ data }) {
+  const { personal, coverLetter } = data
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  return (
+    <div id="cover-letter-print" className="cover-doc">
+      <div className="cl-sender">
+        <p className="cl-name">{personal.name || 'Your Name'}</p>
+        <p>{[personal.email, personal.phone].filter(Boolean).join(' · ')}</p>
+        {personal.location && <p>{personal.location}</p>}
+      </div>
+      <p className="cl-date">{today}</p>
+      {(coverLetter.company || coverLetter.role) && (
+        <div className="cl-recipient">
+          {coverLetter.role && <p>Re: Application for {coverLetter.role}</p>}
+          {coverLetter.company && <p>{coverLetter.company}</p>}
+        </div>
+      )}
+      <div className="cl-body">
+        {coverLetter.body.split('\n').map((line, i) => line.trim() ? <p key={i}>{line}</p> : <br key={i} />)}
+      </div>
     </div>
   )
 }

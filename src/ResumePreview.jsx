@@ -5,7 +5,7 @@ const http = url => !url ? '#' : /^https?:\/\//.test(url) ? url : 'https://' + u
 const strip = url => url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
 const tc = s => s ? s.replace(/\b\w/g, c => c.toUpperCase()) : ''
 
-export default function ResumePreview({ data, template }) {
+export default function ResumePreview({ data, template, theme = 'light' }) {
   const { personal, experience, education, projects, skillGroups, activities, portfolio } = data
   const wrapRef = useRef()
   const [scale, setScale] = useState(1)
@@ -47,7 +47,7 @@ export default function ResumePreview({ data, template }) {
           transform: `scale(${scale})`,
           /* height auto — let content grow, don't clip */
         }}>
-          <div id="resume-print" className={`resume tpl-${tpl}`}>
+          <div id="resume-print" className={`resume tpl-${tpl} ${theme === 'dark' ? 'resume-theme-dark' : ''}`}>
 
             {/* ══ HEADER ══ */}
             <header className="rh">
@@ -63,6 +63,112 @@ export default function ResumePreview({ data, template }) {
             </header>
 
             {/* ══ BODY ══ */}
+            {tpl === 'compact' ? (
+              <>
+                {/* Sidebar: Education, Skills, Portfolio */}
+                <div className="rb-side">
+                  {hasEdu && (
+                    <Sec title="Education" tpl={tpl}>
+                      {education.map(e => (e.degree || e.institution) ? (
+                        <div key={e.id} className="r-entry">
+                          <span className="r-etitle">{e.degree === 'Other / Custom' ? '' : e.degree}</span>
+                          <span className="r-esub">{[e.institution, e.location].filter(Boolean).join(', ')}</span>
+                          {(e.year || e.grade) && <span className="r-esub">{[e.year, e.grade].filter(Boolean).join(' · ')}</span>}
+                        </div>
+                      ) : null)}
+                    </Sec>
+                  )}
+                  {hasSkill && (
+                    <Sec title="Skills" tpl={tpl}>
+                      <table className="r-skill-tbl">
+                        <tbody>
+                          {skillGroups.filter(g => g.skills.trim()).map(g => (
+                            <tr key={g.id}>
+                              <td className="r-sk-label">{g.label}</td>
+                              <td className="r-sk-val">{g.skills}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </Sec>
+                  )}
+                  {hasAct && (
+                    <Sec title="Activities" tpl={tpl}>
+                      {activities.filter(a => a.title).map(a => (
+                        <div key={a.id} className="r-act">
+                          <span className="r-act-dot">•</span>
+                          <span><strong>{a.title}</strong>{a.description ? ` — ${a.description}` : ''}</span>
+                        </div>
+                      ))}
+                    </Sec>
+                  )}
+                  {hasPort && (
+                    <Sec title="Portfolio" tpl={tpl}>
+                      {portfolio.filter(p => p.url).map(p => (
+                        <div key={p.id} className="r-act">
+                          <span className="r-act-dot">•</span>
+                          <span>
+                            {p.label && <strong>{p.label}: </strong>}
+                            <a className="r-portlink" href={http(p.url)} target="_blank" rel="noreferrer">{strip(p.url)}</a>
+                          </span>
+                        </div>
+                      ))}
+                    </Sec>
+                  )}
+                </div>
+
+                {/* Main column: Summary, Experience, Projects */}
+                <div className="rb">
+                  {personal.summary && (
+                    <Sec title="Summary" tpl={tpl}>
+                      <p className="r-summary">{personal.summary}</p>
+                    </Sec>
+                  )}
+                  {hasExp && (
+                    <Sec title="Work Experience" tpl={tpl}>
+                      {experience.map(e => (e.role || e.company) ? (
+                        <div key={e.id} className="r-entry">
+                          <div className="r-row">
+                            <div className="r-left">
+                              <span className="r-etitle">{e.role}</span>
+                              {e.company && <span className="r-esub">{e.company}</span>}
+                            </div>
+                            {e.duration && <span className="r-date">{e.duration}</span>}
+                          </div>
+                          {e.description && <Bul text={e.description} />}
+                        </div>
+                      ) : null)}
+                    </Sec>
+                  )}
+                  {hasProj && (
+                    <Sec title="Projects" tpl={tpl}>
+                      {projects.map(p => p.name ? (
+                        <div key={p.id} className="r-entry">
+                          <div className="r-row">
+                            <div className="r-left">
+                              <span className="r-etitle r-proj-line">
+                                {p.link
+                                  ? <a className="r-pname" href={http(p.link)} target="_blank" rel="noreferrer">{p.name}</a>
+                                  : <span className="r-pname-plain">{p.name}</span>
+                                }
+                                {p.link && (
+                                  <a className="r-purl-inline" href={http(p.link)} target="_blank" rel="noreferrer">
+                                    🔗 {strip(p.link)}
+                                  </a>
+                                )}
+                              </span>
+                              {p.tech && <span className="r-tech-text">{p.tech}</span>}
+                            </div>
+                            {p.duration && <span className="r-date">{p.duration}</span>}
+                          </div>
+                          {p.description && <Bul text={p.description} />}
+                        </div>
+                      ) : null)}
+                    </Sec>
+                  )}
+                </div>
+              </>
+            ) : (
             <div className="rb">
 
               {/* Summary */}
@@ -182,6 +288,7 @@ export default function ResumePreview({ data, template }) {
               )}
 
             </div>
+            )}
           </div>
         </div>
       </div>
