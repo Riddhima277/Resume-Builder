@@ -217,22 +217,59 @@ export default function App() {
     try {
       const h = (await import('html2pdf.js')).default
       const el = document.getElementById('resume-print')
+
       // Temporarily expand for full capture
       const origStyle = el.style.cssText
       el.style.height = 'auto'
       el.style.minHeight = 'unset'
       el.style.overflow = 'visible'
-      await h().set({
+
+      const worker = h().set({
         margin: 0,
         filename: `${data.personal.name.replace(/\s+/g, '_')}_resume.pdf`,
         image: { type: 'jpeg', quality: 0.99 },
         html2canvas: { scale: 3, useCORS: true, letterRendering: true, scrollY: 0 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      }).from(el).save()
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'avoid-all'], avoid: ['.r-entry', '.r-sec', '.r-act', 'tr', '.r-skill-tbl'] }
+      }).from(el)
+
+      // Render to PDF object (not yet saved) so we can inject real clickable links
+      const pdf = await worker.toPdf().get('pdf')
+
+      // html2canvas rasterizes everything to an image, so all <a> tags
+      // become dead pixels. We re-add them as real PDF link annotations
+      // by mapping each anchor's on-screen position to PDF coordinates.
+      const pageHeightPx = el.offsetHeight
+      const pdfPageHeightMM = 297 // A4 height
+      const pxToMM = 210 / 794    // A4 width 210mm / resume width 794px
+
+      const anchors = el.querySelectorAll('a[href]')
+      const elRect = el.getBoundingClientRect()
+
+      anchors.forEach(a => {
+        const href = a.getAttribute('href')
+        if (!href || href === '#') return
+        const rect = a.getBoundingClientRect()
+
+        const xMM = (rect.left - elRect.left) * pxToMM
+        const relTopPx = rect.top - elRect.top
+        const wMM = rect.width * pxToMM
+        const hMM = rect.height * pxToMM
+
+        const pageNum = Math.floor((relTopPx * pxToMM) / pdfPageHeightMM)
+        const yOnPageMM = (relTopPx * pxToMM) % pdfPageHeightMM
+
+        pdf.setPage(pageNum + 1)
+        pdf.link(xMM, yOnPageMM, wMM, hMM, { url: href })
+      })
+
+      pdf.save(`${data.personal.name.replace(/\s+/g, '_')}_resume.pdf`)
+
       el.style.cssText = origStyle
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
     } catch (e) {
+      console.error(e)
       alert('Download failed. Please try again.')
     }
     setDownloading(false)

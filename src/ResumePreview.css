@@ -12,8 +12,21 @@
   color: #1a1a2e;
   box-shadow: 0 20px 70px rgba(0,0,0,0.55);
   position: relative;
-  overflow: hidden;
   box-sizing: border-box;
+}
+
+/* ── Page-break control for PDF export ──
+   Keep individual entries, table rows, and activity lines
+   from being sliced across a page boundary. */
+.r-entry,
+.r-act,
+.r-skill-tbl tr,
+.r-sec-hd {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.r-sec {
+  break-inside: avoid-page;
 }
 
 /* Contact items — shared */
