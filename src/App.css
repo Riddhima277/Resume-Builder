@@ -299,6 +299,7 @@ select option { background: var(--navy-mid); }
   box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 }
 .modal-sm { max-width: 460px; }
+.modal-lg { max-width: 720px; }
 .modal-header {
   display: flex;
   align-items: center;
@@ -336,6 +337,39 @@ select option { background: var(--navy-mid); }
 .ats-kw { font-size: 11.5px; font-weight: 500; padding: 4px 10px; border-radius: 14px; }
 .ats-kw-good { background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
 .ats-kw-bad { background: rgba(239,68,68,0.1); color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+
+/* Sub-score grid */
+.ats-subscores {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.ats-subscore {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ats-subscore-head { display: flex; align-items: center; justify-content: space-between; }
+.ats-subscore-head > span:first-child { font-size: 12px; font-weight: 700; color: #fff; }
+.ats-subscore-pct { font-size: 13px; font-weight: 800; }
+.ats-subscore-pct.good { color: var(--mint); }
+.ats-subscore-pct.mid { color: #f59e0b; }
+.ats-subscore-pct.low { color: #ef4444; }
+.ats-subscore-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+/* Structure checklist */
+.ats-checklist { display: flex; flex-direction: column; gap: 5px; list-style: none; }
+.ats-checklist li { font-size: 12px; line-height: 1.5; }
+.ats-check-pass { color: #6ee7b7; }
+.ats-check-fail { color: #fca5a5; }
+
+@media (max-width: 640px) {
+  .ats-subscores { grid-template-columns: 1fr; }
+}
 
 /* ── Share link modal ── */
 .share-url-row { display: flex; gap: 8px; }

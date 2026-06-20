@@ -408,7 +408,7 @@ export default function App() {
               {resumeTheme === 'light' ? '🌙 Dark resume' : '☀️ Light resume'}
             </button>
             <button className="tbtn" onClick={() => setShowImport(true)}>📋 Import from text</button>
-            <button className="tbtn" onClick={() => setShowATS(true)}>🎯 ATS check</button>
+            <button className="tbtn" onClick={() => setShowATS(true)}>🎯 Resume check</button>
             <button className="tbtn" onClick={handleExportText}>📄 Export .txt</button>
             <button className="tbtn" onClick={handleGenerateShareLink}>🔗 Share link</button>
           </div>
@@ -822,53 +822,133 @@ function timeAgo(ts) {
 
 function ATSModal({ data, onClose }) {
   const [jobText, setJobText] = useState('')
-  const result = jobText.trim() ? scoreResume(data, jobText) : null
+  const result = scoreResume(data, jobText)
+
+  const scoreClass = (s) => s === null ? '' : s >= 70 ? 'good' : s >= 40 ? 'mid' : 'low'
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
+      <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>🎯 ATS Keyword Check</h3>
+          <h3>🎯 Resume Checker</h3>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
-          <p className="modal-desc">Paste a job description below to see how well your resume's wording matches the keywords it's likely scanned for.</p>
+          <p className="modal-desc">
+            Paste a job description for a keyword match, or leave it blank to check your resume's
+            structure, impact, and wording on its own. This checks several things real ATS systems
+            and recruiters actually look at — not just keyword count.
+          </p>
           <textarea
-            rows={6}
+            rows={5}
             className="ats-textarea"
             value={jobText}
             onChange={e => setJobText(e.target.value)}
-            placeholder="Paste the full job description here…"
+            placeholder="Optional: paste a job description here for keyword matching…"
           />
-          {result && (
-            <div className="ats-result">
-              <div className="ats-score-row">
-                <div className={`ats-score-circle ${result.score >= 70 ? 'good' : result.score >= 40 ? 'mid' : 'low'}`}>
-                  {result.score}%
+
+          {/* Overall score */}
+          <div className="ats-result">
+            <div className="ats-score-row">
+              <div className={`ats-score-circle ${scoreClass(result.overall)}`}>{result.overall}%</div>
+              <div>
+                <p className="ats-score-label">Overall Resume Score</p>
+                <p className="ats-score-sub">
+                  {result.hasJob
+                    ? 'Blend of keyword match, structure, impact, and wording'
+                    : 'Based on structure, impact, and wording — add a job description for keyword matching'}
+                </p>
+              </div>
+            </div>
+
+            {/* Sub-scores grid */}
+            <div className="ats-subscores">
+              {result.hasJob && (
+                <div className="ats-subscore">
+                  <div className="ats-subscore-head">
+                    <span>Keyword Match</span>
+                    <span className={`ats-subscore-pct ${scoreClass(result.keyword.score)}`}>{result.keyword.score}%</span>
+                  </div>
+                  <p className="ats-subscore-desc">{result.keyword.matched.length} of {result.keywordTotal} job-description keywords found, weighted by where they appear</p>
                 </div>
-                <div>
-                  <p className="ats-score-label">Keyword Match</p>
-                  <p className="ats-score-sub">{result.matched.length} of {result.total} keywords found in your resume</p>
+              )}
+              <div className="ats-subscore">
+                <div className="ats-subscore-head">
+                  <span>Structure & Completeness</span>
+                  <span className={`ats-subscore-pct ${scoreClass(result.structure.score)}`}>{result.structure.score}%</span>
+                </div>
+                <p className="ats-subscore-desc">Does your resume have the sections an ATS parser expects?</p>
+              </div>
+              <div className="ats-subscore">
+                <div className="ats-subscore-head">
+                  <span>Quantified Impact</span>
+                  <span className={`ats-subscore-pct ${scoreClass(result.impact.score)}`}>
+                    {result.impact.score === null ? '—' : `${result.impact.score}%`}
+                  </span>
+                </div>
+                <p className="ats-subscore-desc">
+                  {result.impact.total === 0
+                    ? 'Add bullet points to Experience or Projects to check this'
+                    : `${result.impact.withMetrics} of ${result.impact.total} bullet points include a number or metric`}
+                </p>
+              </div>
+              <div className="ats-subscore">
+                <div className="ats-subscore-head">
+                  <span>Action-Verb Strength</span>
+                  <span className={`ats-subscore-pct ${scoreClass(result.verbs.score)}`}>
+                    {result.verbs.score === null ? '—' : `${result.verbs.score}%`}
+                  </span>
+                </div>
+                <p className="ats-subscore-desc">
+                  {result.verbs.total === 0
+                    ? 'Add bullet points to Experience or Projects to check this'
+                    : `${result.verbs.strong} of ${result.verbs.total} bullets open with a strong action verb`}
+                </p>
+              </div>
+            </div>
+
+            {/* Structure checklist */}
+            <div className="ats-kw-group">
+              <p className="ats-kw-title">Structure checklist</p>
+              <ul className="ats-checklist">
+                {result.structure.checks.map(c => (
+                  <li key={c.label} className={c.pass ? 'ats-check-pass' : 'ats-check-fail'}>
+                    {c.pass ? '✓' : '✗'} {c.label}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Weak bullet openers */}
+            {result.verbs.weak.length > 0 && (
+              <div className="ats-kw-group">
+                <p className="ats-kw-title">Weak bullet openers — consider rewriting</p>
+                <ul className="ats-checklist">
+                  {result.verbs.weak.map((l, i) => (
+                    <li key={i} className="ats-check-fail">"{l.length > 70 ? l.slice(0, 70) + '…' : l}"</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Keyword lists, only when a job description was pasted */}
+            {result.hasJob && result.keyword.matched.length > 0 && (
+              <div className="ats-kw-group">
+                <p className="ats-kw-title">✓ Matched keywords</p>
+                <div className="ats-kw-list">
+                  {result.keyword.matched.map(k => <span key={k} className="ats-kw ats-kw-good">{k}</span>)}
                 </div>
               </div>
-              {result.matched.length > 0 && (
-                <div className="ats-kw-group">
-                  <p className="ats-kw-title">✓ Matched</p>
-                  <div className="ats-kw-list">
-                    {result.matched.map(k => <span key={k} className="ats-kw ats-kw-good">{k}</span>)}
-                  </div>
+            )}
+            {result.hasJob && result.keyword.missing.length > 0 && (
+              <div className="ats-kw-group">
+                <p className="ats-kw-title">✗ Missing — consider adding if relevant</p>
+                <div className="ats-kw-list">
+                  {result.keyword.missing.map(k => <span key={k} className="ats-kw ats-kw-bad">{k}</span>)}
                 </div>
-              )}
-              {result.missing.length > 0 && (
-                <div className="ats-kw-group">
-                  <p className="ats-kw-title">✗ Missing — consider adding if relevant</p>
-                  <div className="ats-kw-list">
-                    {result.missing.map(k => <span key={k} className="ats-kw ats-kw-bad">{k}</span>)}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
