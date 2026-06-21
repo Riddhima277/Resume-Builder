@@ -1,6 +1,4 @@
-// Lightweight heuristic parser. Pasted resumes are messy and inconsistent,
-// so this aims for "good enough starting point" rather than perfection —
-// it fills what it confidently can and leaves the rest for manual editing.
+
 
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
 const PHONE_RE = /(\+?\d{1,3}[\s-]?)?\d{10}|\+?\d{1,3}[\s-]?\d{3,4}[\s-]?\d{3,4}[\s-]?\d{3,4}/

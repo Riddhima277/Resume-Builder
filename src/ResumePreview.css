@@ -13,11 +13,11 @@
   box-shadow: 0 20px 70px rgba(0,0,0,0.55);
   position: relative;
   box-sizing: border-box;
+
+  overflow-x: hidden;
 }
 
-/* ── Page-break control for PDF export ──
-   Keep individual entries, table rows, and activity lines
-   from being sliced across a page boundary. */
+
 .r-entry,
 .r-act,
 .r-skill-tbl tr,
@@ -29,13 +29,33 @@
   break-inside: avoid-page;
 }
 
-/* Contact items — shared */
+
+.r-act {
+  min-width: 0;
+}
+.r-act > span:last-child {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.r-row,
+.r-left,
+.r-entry-desc,
+.coach-line-text {
+  min-width: 0;
+}
+.r-etitle, .r-esub, .r-summary, .r-bul li {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+
 .rh-contacts { display: flex; flex-wrap: wrap; gap: 5px 20px; margin-top: 12px; }
 .r-ci { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; text-decoration: none; color: inherit; }
 
-/* ══════════════════════════════════════
-   MODERN TEMPLATE
-══════════════════════════════════════ */
+
 .tpl-modern .rh {
   background: linear-gradient(135deg, #0a0f24 0%, #111936 65%, #1a1040 100%);
   padding: 34px 48px 28px;
@@ -245,11 +265,7 @@
 /* Modern template dark — header is already dark navy, just darken the body */
 .resume-theme-dark.tpl-modern .rh { background: #0A0A14; }
 
-/* ══════════════════════════════════════
-   COMPACT TEMPLATE — two-column layout
-   Sidebar (skills, education, portfolio) + main column
-   (summary, experience, projects). Denser, fits more on one page.
-══════════════════════════════════════ */
+
 .tpl-compact {
   display: grid;
   grid-template-columns: 230px 1fr;

@@ -1,8 +1,4 @@
-// Client-side "shareable link" — encodes the full resume data into the
-// URL itself (base64 of JSON), so no backend/database is needed. The
-// resume opens read-only when the URL contains ?view=<encoded>.
-// Trade-off: long URLs for big resumes, but zero infra and works on
-// the free Vercel Hobby tier with no server code at all.
+
 
 export function encodeShareData(data, template) {
   try {

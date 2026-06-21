@@ -278,11 +278,12 @@ export default function App() {
       const h = (await import('html2pdf.js')).default
       const el = document.getElementById('resume-print')
 
-      // Temporarily expand for full capture
+    
       const origStyle = el.style.cssText
       el.style.height = 'auto'
       el.style.minHeight = 'unset'
-      el.style.overflow = 'visible'
+      el.style.overflowY = 'visible'
+      el.style.overflowX = 'hidden'
 
       const worker = h().set({
         margin: 0,
@@ -293,15 +294,13 @@ export default function App() {
         pagebreak: { mode: ['css', 'avoid-all'], avoid: ['.r-entry', '.r-sec', '.r-act', 'tr', '.r-skill-tbl'] }
       }).from(el)
 
-      // Render to PDF object (not yet saved) so we can inject real clickable links
+    
       const pdf = await worker.toPdf().get('pdf')
 
-      // html2canvas rasterizes everything to an image, so all <a> tags
-      // become dead pixels. We re-add them as real PDF link annotations
-      // by mapping each anchor's on-screen position to PDF coordinates.
+     
       const pageHeightPx = el.offsetHeight
-      const pdfPageHeightMM = 297 // A4 height
-      const pxToMM = 210 / 794    // A4 width 210mm / resume width 794px
+      const pdfPageHeightMM = 297 
+      const pxToMM = 210 / 794    
 
       const anchors = el.querySelectorAll('a[href]')
       const elRect = el.getBoundingClientRect()
@@ -390,7 +389,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Secondary utility toolbar */}
+      
       {!isReadOnly && (
         <div className="toolbar">
           <div className="toolbar-left">
@@ -454,7 +453,7 @@ export default function App() {
 
           <div className="form-body">
 
-            {/* ── PERSONAL ── */}
+            
             {tab === 'personal' && (
               <div className="sf">
                 <div className="si">
@@ -1109,11 +1108,7 @@ function BulletCoachPanel({ description }) {
   )
 }
 
-// AI Rewrite button — calls our serverless proxy (never the AI
-// provider directly) to suggest an improved version of whatever text
-// is in the field. Shows the suggestion as an explicit accept/reject
-// choice rather than silently replacing the user's writing — the
-// person stays in control of what actually goes on their resume.
+
 function AIRewriteButton({ mode, getText, context, onAccept, disabled, label = '✨ AI rewrite' }) {
   const [status, setStatus] = useState('idle') // idle | loading | suggested | error
   const [suggestion, setSuggestion] = useState('')

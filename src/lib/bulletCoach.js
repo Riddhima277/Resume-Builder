@@ -6,8 +6,7 @@ const FILLER_PHRASES = [
   'responsible for', 'duties included', 'tasked with',
 ]
 
-// Analyze a single bullet line and return a short list of tags +
-// one headline verdict. Returns null for blank/whitespace lines.
+
 export function analyzeBullet(line) {
   const text = (line || '').trim()
   if (!text) return null

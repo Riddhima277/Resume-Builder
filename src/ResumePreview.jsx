@@ -13,7 +13,7 @@ export default function ResumePreview({ data, template, theme = 'light' }) {
   useEffect(() => {
     const upd = () => {
       if (!wrapRef.current) return
-      // 794 = A4 at 96dpi. Leave 24px padding.
+     
       const available = wrapRef.current.offsetWidth - 24
       setScale(Math.min(1, available / 794))
     }
@@ -35,11 +35,7 @@ export default function ResumePreview({ data, template, theme = 'light' }) {
 
   return (
     <div ref={wrapRef} style={{ width: '100%' }}>
-      {/*
-        Outer div: collapses to scaled width so no horizontal scroll.
-        Inner div: 794px wide, scaled down, grows naturally in height.
-        The preview-wrapper parent has overflow-y:auto so long resumes scroll.
-      */}
+      
       <div style={{ width: `${Math.round(794 * scale)}px`, margin: '0 auto', overflow: 'visible' }}>
         <div style={{
           width: 794,

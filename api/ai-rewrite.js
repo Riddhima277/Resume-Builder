@@ -3,8 +3,6 @@
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const MODEL = 'llama-3.3-70b-versatile'
 
-// Per-task system prompts. Kept short and specific so the model
-// stays on-task and doesn't pad responses with commentary.
 const PROMPTS = {
   bullet: `You rewrite resume bullet points to be stronger.
 The input may be one bullet or several, one per line.
