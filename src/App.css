@@ -37,9 +37,30 @@ body { font-family: var(--font-body); background: var(--navy); color: var(--whit
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Progress ── */
-.progress-wrap { height: 3px; background: var(--navy-light); position: relative; flex-shrink: 0; }
-.progress-fill { height: 100%; background: linear-gradient(90deg,#7C3AED,#10B981); transition: width 0.4s ease; }
-.progress-txt { position: absolute; right: 10px; top: 5px; font-size: 10px; font-weight: 600; color: var(--muted); }
+/* Resume strength meter — replaces the old fill-rate progress bar.
+   Computed live from scoreResume(data, ''), so it reflects actual
+   resume quality (structure + bullet impact + verb strength), not
+   just "did you type something in every box". */
+.strength-wrap { display: flex; flex-direction: column; flex-shrink: 0; background: rgba(0,0,0,0.15); border-bottom: 1px solid var(--border); }
+.strength-bar { height: 3px; background: var(--navy-light); width: 100%; }
+.strength-fill { height: 100%; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
+.strength-fill.strength-good { background: linear-gradient(90deg,#10B981,#34d399); }
+.strength-fill.strength-mid  { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
+.strength-fill.strength-low  { background: linear-gradient(90deg,#ef4444,#f87171); }
+.strength-label {
+  display: flex; align-items: center; gap: 7px;
+  background: none; border: none; cursor: pointer;
+  font-size: 11.5px; color: var(--muted); font-weight: 600;
+  padding: 5px 16px; text-align: left; width: fit-content;
+  transition: color 0.15s;
+}
+.strength-label:hover { color: #fff; }
+.strength-label strong { color: #fff; font-weight: 800; }
+.strength-hint { font-weight: 400; opacity: 0.65; font-size: 11px; }
+.strength-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.strength-dot.strength-good { background: #10B981; box-shadow: 0 0 6px rgba(16,185,129,0.6); }
+.strength-dot.strength-mid  { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.6); }
+.strength-dot.strength-low  { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.6); }
 
 /* ── Banners ── */
 .err-banner { background: rgba(239,68,68,0.12); border-bottom: 1px solid rgba(239,68,68,0.3); color: #fca5a5; font-size: 13px; font-weight: 500; padding: 8px 20px; text-align: center; flex-shrink: 0; }
@@ -417,3 +438,38 @@ select option { background: var(--navy-mid); }
   .preview-wrapper { min-height: 500px; overflow-x: hidden; }
   .g2 { grid-template-columns: 1fr; }
 }
+
+/* Bullet coach — live per-line feedback under description textareas */
+.coach-panel {
+  margin-top: 8px;
+  background: rgba(124,58,237,0.05);
+  border: 1px solid rgba(124,58,237,0.15);
+  border-radius: 9px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.coach-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.coach-title { font-size: 11px; font-weight: 700; color: var(--violet-light); }
+.coach-summary { font-size: 10.5px; color: var(--muted); }
+.coach-list { display: flex; flex-direction: column; gap: 6px; list-style: none; }
+.coach-line {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border-left: 2px solid transparent;
+}
+.coach-line.coach-good { border-left-color: var(--mint); background: rgba(16,185,129,0.05); }
+.coach-line.coach-ok   { border-left-color: rgba(255,255,255,0.15); }
+.coach-line.coach-weak { border-left-color: #ef4444; background: rgba(239,68,68,0.05); }
+.coach-line-text { font-size: 11px; color: rgba(248,249,255,0.75); flex: 1; min-width: 140px; }
+.coach-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.coach-tag { font-size: 9.5px; font-weight: 600; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
+.coach-tag-good    { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+.coach-tag-bad     { background: rgba(239,68,68,0.12); color: #fca5a5; }
+.coach-tag-neutral { background: rgba(255,255,255,0.07); color: var(--muted); }

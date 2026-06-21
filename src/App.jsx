@@ -3,6 +3,7 @@ import './App.css'
 import ResumePreview from './ResumePreview.jsx'
 import { loadSavedData, loadSavedMeta, saveData, clearSavedData } from './lib/persistence.js'
 import { scoreResume } from './lib/atsChecker.js'
+import { analyzeDescriptionBlock } from './lib/bulletCoach.js'
 import { parseResumeText, parsedToFormData } from './lib/resumeParser.js'
 import { dataToPlainText, downloadTextFile } from './lib/exportText.js'
 import { buildShareUrl, decodeShareData, getShareParamFromUrl } from './lib/shareLink.js'
@@ -162,18 +163,6 @@ const INITIAL = {
 const TEMPLATES = [
   { key: 'Modern' }, { key: 'Classic' }, { key: 'Minimal' }, { key: 'Compact' },
 ]
-
-function calcPct(data) {
-  let f = 0
-  if (data.personal.name.trim()) f++
-  if (data.personal.email.trim()) f++
-  if (data.personal.summary.trim()) f++
-  if (data.education.some(e => e.degree.trim() || e.institution.trim())) f++
-  if (data.projects.some(p => p.name.trim())) f++
-  if (data.skillGroups.some(g => g.skills.trim())) f++
-  if (data.portfolio.some(p => p.url.trim())) f++
-  return Math.round((f / 7) * 100)
-}
 
 function validate(data) {
   const errs = {}
@@ -367,7 +356,7 @@ export default function App() {
     setDownloading(false)
   }
 
-  const complete = calcPct(data)
+  const strength = scoreResume(data, '')
   const errCount = Object.keys(errors).length
   const hasPersonalErr = errors['personal.name'] || errors['personal.email'] || errors['personal.phone']
   const hasEduErr = errors['education']
@@ -426,9 +415,18 @@ export default function App() {
       )}
 
       {!isReadOnly && (
-        <div className="progress-wrap">
-          <div className="progress-fill" style={{ width: complete + '%' }} />
-          <span className="progress-txt">{complete}% complete</span>
+        <div className="strength-wrap">
+          <div className="strength-bar">
+            <div
+              className={`strength-fill strength-${strength.overall >= 70 ? 'good' : strength.overall >= 40 ? 'mid' : 'low'}`}
+              style={{ width: strength.overall + '%' }}
+            />
+          </div>
+          <button className="strength-label" onClick={() => setShowATS(true)} title="Click for full breakdown">
+            <span className={`strength-dot strength-${strength.overall >= 70 ? 'good' : strength.overall >= 40 ? 'mid' : 'low'}`} />
+            Resume strength: <strong>{strength.overall}%</strong>
+            <span className="strength-hint">— click for details</span>
+          </button>
         </div>
       )}
 
@@ -583,6 +581,7 @@ export default function App() {
                       <textarea rows={4} value={e.description}
                         onChange={v => arrSet('experience', e.id, 'description', v.target.value)}
                         placeholder={"Managed social media accounts and grew followers by 30%\nAssisted in preparing financial reports and audit documents\nConducted market research for product launch campaign"} />
+                      <BulletCoachPanel description={e.description} />
                     </F>
                   </Card>
                 ))}
@@ -622,6 +621,7 @@ export default function App() {
                       <textarea rows={4} value={p.description}
                         onChange={v => arrSet('projects', p.id, 'description', v.target.value)}
                         placeholder={"Describe what the project was about and what you achieved\nMention tools used, problems solved, or results obtained\ne.g. Analysed survey data of 500+ respondents using SPSS"} />
+                      <BulletCoachPanel description={p.description} />
                     </F>
                   </Card>
                 ))}
@@ -1057,4 +1057,35 @@ function Card({ label, onRemove, children }) {
 }
 function Tip({ children }) {
   return <div className="tip-box">{children}</div>
+}
+
+// Live, line-by-line feedback under a description textarea. Pure
+// client-side text analysis (no network call) so it updates instantly
+// on every keystroke — strong verb? has a metric? too short? filler?
+function BulletCoachPanel({ description }) {
+  const lines = analyzeDescriptionBlock(description)
+  if (lines.length === 0) return null
+
+  const goodCount = lines.filter(l => l.verdict === 'good').length
+
+  return (
+    <div className="coach-panel">
+      <div className="coach-head">
+        <span className="coach-title">✨ Bullet coach</span>
+        <span className="coach-summary">{goodCount} of {lines.length} bullets are strong</span>
+      </div>
+      <ul className="coach-list">
+        {lines.map((l, i) => (
+          <li key={i} className={`coach-line coach-${l.verdict}`}>
+            <span className="coach-line-text">{l.text.length > 60 ? l.text.slice(0, 60) + '…' : l.text}</span>
+            <span className="coach-tags">
+              {l.tags.map((t, j) => (
+                <span key={j} className={`coach-tag coach-tag-${t.kind}`}>{t.label}</span>
+              ))}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }

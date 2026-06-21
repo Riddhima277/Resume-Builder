@@ -9,7 +9,7 @@ const STOPWORDS = new Set([
   'so','no','nor','not','only','own','same','too','very','just','also','etc','per',
 ])
 
-const STRONG_VERBS = new Set([
+export const STRONG_VERBS = new Set([
   'built','led','launched','designed','developed','created','implemented','architected',
   'optimized','reduced','increased','improved','automated','streamlined','spearheaded',
   'managed','delivered','achieved','drove','scaled','engineered','deployed','founded',
@@ -18,11 +18,11 @@ const STRONG_VERBS = new Set([
   'established','pioneered','transformed','executed','directed','authored','published',
 ])
 
-const WEAK_OPENERS = new Set([
+export const WEAK_OPENERS = new Set([
   'worked','helped','responsible','assisted','involved','participated','was','tasked',
 ])
 
-function tokenize(text) {
+export function tokenize(text) {
   return (text || '')
     .toLowerCase()
     .replace(/[^a-z0-9+#./\s-]/g, ' ')
