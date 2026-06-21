@@ -4,6 +4,7 @@ import ResumePreview from './ResumePreview.jsx'
 import { loadSavedData, loadSavedMeta, saveData, clearSavedData } from './lib/persistence.js'
 import { scoreResume } from './lib/atsChecker.js'
 import { analyzeDescriptionBlock } from './lib/bulletCoach.js'
+import { aiRewrite } from './lib/aiAssist.js'
 import { parseResumeText, parsedToFormData } from './lib/resumeParser.js'
 import { dataToPlainText, downloadTextFile } from './lib/exportText.js'
 import { buildShareUrl, decodeShareData, getShareParamFromUrl } from './lib/shareLink.js'
@@ -486,6 +487,12 @@ export default function App() {
                 <F label="Professional Summary" hint="2–4 sentences about who you are, what you study, and what you bring.">
                   <textarea rows={5} value={data.personal.summary} onChange={e => sp('summary', e.target.value)}
                     placeholder="Briefly describe your background, field of study, key strengths, and what kind of opportunity you're looking for." />
+                  <AIRewriteButton
+                    mode="summary"
+                    getText={() => data.personal.summary}
+                    context={data.personal.title}
+                    onAccept={(text) => sp('summary', text)}
+                  />
                 </F>
                 <Tip>💡 Your title line is the first thing recruiters read — keep it clear: <em>"B.Com Hons. Student | Finance & Accounting"</em> or <em>"Mechanical Engineering Graduate | CAD & Design"</em></Tip>
               </div>
@@ -581,6 +588,12 @@ export default function App() {
                       <textarea rows={4} value={e.description}
                         onChange={v => arrSet('experience', e.id, 'description', v.target.value)}
                         placeholder={"Managed social media accounts and grew followers by 30%\nAssisted in preparing financial reports and audit documents\nConducted market research for product launch campaign"} />
+                      <AIRewriteButton
+                        mode="bullet"
+                        getText={() => e.description}
+                        context={e.role ? `Role: ${e.role}${e.company ? ' at ' + e.company : ''}` : ''}
+                        onAccept={(text) => arrSet('experience', e.id, 'description', text)}
+                      />
                       <BulletCoachPanel description={e.description} />
                     </F>
                   </Card>
@@ -621,6 +634,12 @@ export default function App() {
                       <textarea rows={4} value={p.description}
                         onChange={v => arrSet('projects', p.id, 'description', v.target.value)}
                         placeholder={"Describe what the project was about and what you achieved\nMention tools used, problems solved, or results obtained\ne.g. Analysed survey data of 500+ respondents using SPSS"} />
+                      <AIRewriteButton
+                        mode="project"
+                        getText={() => p.description}
+                        context={p.name ? `Project: ${p.name}${p.tech ? ' (' + p.tech + ')' : ''}` : ''}
+                        onAccept={(text) => arrSet('projects', p.id, 'description', text)}
+                      />
                       <BulletCoachPanel description={p.description} />
                     </F>
                   </Card>
@@ -1086,6 +1105,74 @@ function BulletCoachPanel({ description }) {
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+// AI Rewrite button — calls our serverless proxy (never the AI
+// provider directly) to suggest an improved version of whatever text
+// is in the field. Shows the suggestion as an explicit accept/reject
+// choice rather than silently replacing the user's writing — the
+// person stays in control of what actually goes on their resume.
+function AIRewriteButton({ mode, getText, context, onAccept, disabled, label = '✨ AI rewrite' }) {
+  const [status, setStatus] = useState('idle') // idle | loading | suggested | error
+  const [suggestion, setSuggestion] = useState('')
+  const [errMsg, setErrMsg] = useState('')
+
+  const run = async () => {
+    const text = (getText() || '').trim()
+    if (!text) {
+      setErrMsg('Write something first, then I can help improve it.')
+      setStatus('error')
+      return
+    }
+    setStatus('loading')
+    setErrMsg('')
+    try {
+      const result = await aiRewrite(mode, text, context)
+      setSuggestion(result)
+      setStatus('suggested')
+    } catch (err) {
+      setErrMsg(err.message || 'Something went wrong.')
+      setStatus('error')
+    }
+  }
+
+  const accept = () => {
+    onAccept(suggestion)
+    setStatus('idle')
+    setSuggestion('')
+  }
+  const reject = () => {
+    setStatus('idle')
+    setSuggestion('')
+  }
+
+  return (
+    <div className="ai-rewrite-wrap">
+      <button
+        type="button"
+        className="ai-rewrite-btn"
+        onClick={run}
+        disabled={disabled || status === 'loading'}
+      >
+        {status === 'loading' ? <><span className="spin">↻</span> Thinking…</> : label}
+      </button>
+
+      {status === 'error' && (
+        <p className="ai-rewrite-err">⚠️ {errMsg}</p>
+      )}
+
+      {status === 'suggested' && (
+        <div className="ai-suggestion-box">
+          <p className="ai-suggestion-label">Suggested rewrite</p>
+          <p className="ai-suggestion-text">{suggestion}</p>
+          <div className="ai-suggestion-actions">
+            <button type="button" className="btn-add-sm" onClick={accept}>✓ Use this</button>
+            <button type="button" className="btn-remove" onClick={reject}>✕ Discard</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
