@@ -147,8 +147,3 @@ resume-builder/
 
 ---
 
-<p align="center">
-  <a href="https://digitalheroesco.com">
-    <strong>✦ Built for Digital Heroes</strong>
-  </a>
-</p>
