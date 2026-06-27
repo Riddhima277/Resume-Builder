@@ -798,7 +798,7 @@ export default function App() {
               <span>Built by <strong>Riddhima Gupta</strong></span>
               <a href="mailto:guptariddhima75@gmail.com">guptariddhima75@gmail.com</a>
             </div>
-            <a href="https://digitalheroesco.com" target="_blank" rel="noopener noreferrer" className="btn-dh">✦ Built for Digital Heroes</a>
+           
           </div>
         </footer>
       )}
