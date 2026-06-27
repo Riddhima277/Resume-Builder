@@ -36,11 +36,7 @@ body { font-family: var(--font-body); background: var(--navy); color: var(--whit
 .spin { display: inline-block; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Progress ── */
-/* Resume strength meter — replaces the old fill-rate progress bar.
-   Computed live from scoreResume(data, ''), so it reflects actual
-   resume quality (structure + bullet impact + verb strength), not
-   just "did you type something in every box". */
+
 .strength-wrap { display: flex; flex-direction: column; flex-shrink: 0; background: rgba(0,0,0,0.15); border-bottom: 1px solid var(--border); }
 .strength-bar { height: 3px; background: var(--navy-light); width: 100%; }
 .strength-fill { height: 100%; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
@@ -142,13 +138,7 @@ textarea { resize: vertical; min-height: 88px; }
 select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%239BA3BF' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-color: var(--navy); padding-right: 28px; cursor: pointer; }
 select option { background: var(--navy-mid); }
 
-/* ── Two-column grid ──
-   No align-items override: default `stretch` makes every .field in
-   the same implicit grid row equal height (CSS Grid sizes a row to
-   its tallest item automatically). Each .field then uses flexbox
-   internally with the input pinned to the bottom, so two fields in
-   one row — even with different label/hint lengths — always end
-   with their inputs on the same baseline. */
+
 .g2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -156,9 +146,7 @@ select option { background: var(--navy-mid); }
   width: 100%;
 }
 
-/* Field wrapper — flex column, content at top, input pinned to the
-   bottom of the (now grid-stretched) cell so it always lines up
-   with the field next to it regardless of label/hint length. */
+
 .field {
   display: flex;
   flex-direction: column;

@@ -1110,7 +1110,7 @@ function BulletCoachPanel({ description }) {
 
 
 function AIRewriteButton({ mode, getText, context, onAccept, disabled, label = '✨ AI rewrite' }) {
-  const [status, setStatus] = useState('idle') // idle | loading | suggested | error
+  const [status, setStatus] = useState('idle') 
   const [suggestion, setSuggestion] = useState('')
   const [errMsg, setErrMsg] = useState('')
 
